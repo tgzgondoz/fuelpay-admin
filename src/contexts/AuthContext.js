@@ -1,8 +1,9 @@
+// src/contexts/AuthContext.js
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../services/firebase';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
-const AuthContext = createContext({});
+const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -11,7 +12,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser({
@@ -19,31 +19,43 @@ export const AuthProvider = ({ children }) => {
           email: user.email,
           displayName: user.displayName,
         });
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userEmail', user.email);
       } else {
         setUser(null);
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('userEmail');
       }
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
+
+  const login = async (email, password) => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      return { success: true, user: result.user };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
 
   const logout = async () => {
     try {
       await signOut(auth);
-      setUser(null);
+      return { success: true };
     } catch (error) {
-      console.error('Logout error:', error);
+      return { success: false, error: error.message };
     }
   };
 
+  const value = {
+    user,
+    login,
+    logout,
+    loading
+  };
+
   return (
-    <AuthContext.Provider value={{ user, logout, loading }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

@@ -1,3 +1,4 @@
+// src/pages/Users.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -10,31 +11,18 @@ import {
   TableHead,
   TableRow,
   Button,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
   Chip,
-  Menu,
-  MenuItem,
+  Avatar,
+  TextField,
   InputAdornment,
-  Alert,
-  LinearProgress,
-  Avatar
+  IconButton,
+  LinearProgress
 } from '@mui/material';
 import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
   Search as SearchIcon,
-  MoreVert as MoreVertIcon,
   AccountBalance as BalanceIcon,
   Block as BlockIcon,
-  CheckCircle as ActiveIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon
+  CheckCircle as ActiveIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -43,12 +31,7 @@ export default function Users() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [depositAmount, setDepositAmount] = useState('');
   const [loading, setLoading] = useState(true);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedUserId, setSelectedUserId] = useState(null);
 
   useEffect(() => {
     loadUsers();
@@ -59,8 +42,7 @@ export default function Users() {
       const filtered = users.filter(user =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.phone?.includes(searchTerm) ||
-        user.accountNumber?.includes(searchTerm)
+        user.phone?.includes(searchTerm)
       );
       setFilteredUsers(filtered);
     } else {
@@ -72,8 +54,8 @@ export default function Users() {
     try {
       setLoading(true);
       
-      // Mock data for development
-      const mockUsers = [
+      // Mock data
+      setUsers([
         {
           id: '1',
           name: 'John Doe',
@@ -82,8 +64,7 @@ export default function Users() {
           accountNumber: 'ZQ100001',
           balance: 15000,
           status: 'active',
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
+          createdAt: new Date().toISOString()
         },
         {
           id: '2',
@@ -93,8 +74,7 @@ export default function Users() {
           accountNumber: 'ZQ100002',
           balance: 25000,
           status: 'active',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          lastLogin: new Date().toISOString()
+          createdAt: new Date(Date.now() - 86400000).toISOString()
         },
         {
           id: '3',
@@ -104,107 +84,25 @@ export default function Users() {
           accountNumber: 'ZQ100003',
           balance: 8000,
           status: 'suspended',
-          createdAt: new Date(Date.now() - 172800000).toISOString(),
-          lastLogin: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: '4',
-          name: 'Sarah Williams',
-          email: 'sarah@example.com',
-          phone: '+2348045678901',
-          accountNumber: 'ZQ100004',
-          balance: 35000,
-          status: 'active',
-          createdAt: new Date(Date.now() - 259200000).toISOString(),
-          lastLogin: new Date().toISOString()
-        },
-        {
-          id: '5',
-          name: 'David Brown',
-          email: 'david@example.com',
-          phone: '+2348056789012',
-          accountNumber: 'ZQ100005',
-          balance: 12000,
-          status: 'active',
-          createdAt: new Date(Date.now() - 345600000).toISOString(),
-          lastLogin: new Date().toISOString()
+          createdAt: new Date(Date.now() - 172800000).toISOString()
         }
-      ];
-      
-      setUsers(mockUsers);
-      setFilteredUsers(mockUsers);
+      ]);
       
     } catch (error) {
-      console.error('Error loading users:', error);
-      toast.error('Failed to load users');
+      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMenuClick = (event, userId) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedUserId(userId);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedUserId(null);
-  };
-
-  const handleDeposit = (user) => {
-    setSelectedUser(user);
-    setDepositAmount('');
-    setOpenDialog(true);
-    handleMenuClose();
-  };
-
-  const processDeposit = async () => {
-    if (!depositAmount || parseFloat(depositAmount) <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
-    }
-
-    try {
-      const amount = parseFloat(depositAmount);
-      
-      // Update user balance in state
-      setUsers(prevUsers =>
-        prevUsers.map(user =>
-          user.id === selectedUser.id
-            ? { ...user, balance: user.balance + amount }
-            : user
-        )
-      );
-
-      toast.success(`Successfully deposited ₦${amount.toLocaleString()} to ${selectedUser.name}`);
-      setOpenDialog(false);
-      setSelectedUser(null);
-      
-    } catch (error) {
-      console.error('Error processing deposit:', error);
-      toast.error('Failed to process deposit');
-    }
-  };
-
   const toggleUserStatus = (userId, currentStatus) => {
-    try {
-      const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
-      
-      setUsers(prevUsers =>
-        prevUsers.map(user =>
-          user.id === userId
-            ? { ...user, status: newStatus }
-            : user
-        )
-      );
-
-      toast.success(`User status updated to ${newStatus}`);
-      handleMenuClose();
-    } catch (error) {
-      console.error('Error updating user status:', error);
-      toast.error('Failed to update user status');
-    }
+    const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+    setUsers(prev =>
+      prev.map(user =>
+        user.id === userId ? { ...user, status: newStatus } : user
+      )
+    );
+    toast.success(`User ${newStatus} successfully`);
   };
 
   const getInitials = (name) => {
@@ -216,26 +114,18 @@ export default function Users() {
       .slice(0, 2);
   };
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-          User Management
-        </Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />}
-          onClick={() => setOpenDialog(true)}
-        >
-          Add User
-        </Button>
-      </Box>
+  if (loading) return <LinearProgress />;
 
-      <Paper sx={{ p: 2, mb: 3, borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+  return (
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        User Management
+      </Typography>
+
+      <Paper sx={{ p: 2, mb: 2 }}>
         <TextField
           fullWidth
-          placeholder="Search users by name, email, phone, or account number..."
-          variant="outlined"
+          placeholder="Search users by name, email, or phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
@@ -248,59 +138,46 @@ export default function Users() {
         />
       </Paper>
 
-      {loading ? (
-        <LinearProgress />
-      ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+      <Paper sx={{ p: 2 }}>
+        <TableContainer>
           <Table>
             <TableHead>
-              <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                <TableCell>User Details</TableCell>
-                <TableCell>Account Info</TableCell>
+              <TableRow>
+                <TableCell>User</TableCell>
+                <TableCell>Account</TableCell>
                 <TableCell>Balance</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Joined Date</TableCell>
+                <TableCell>Joined</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id} hover>
+                <TableRow key={user.id}>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: '#1a73e8' }}>
-                        {getInitials(user.name)}
-                      </Avatar>
+                      <Avatar>{getInitials(user.name)}</Avatar>
                       <Box>
-                        <Typography variant="subtitle1" fontWeight="bold">
+                        <Typography variant="body2" fontWeight="bold">
                           {user.name}
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                          <EmailIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                          <Typography variant="body2" color="textSecondary">
-                            {user.email}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                          <PhoneIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                          <Typography variant="body2" color="textSecondary">
-                            {user.phone}
-                          </Typography>
-                        </Box>
+                        <Typography variant="caption" color="textSecondary">
+                          {user.email}
+                        </Typography>
                       </Box>
                     </Box>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      <strong>Account:</strong> {user.accountNumber}
+                      {user.accountNumber}
                     </Typography>
-                    <Typography variant="body2" sx={{ mt: 0.5 }}>
-                      <strong>Last Login:</strong> {format(new Date(user.lastLogin), 'dd MMM yyyy')}
+                    <Typography variant="caption" color="textSecondary">
+                      {user.phone}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="h6" color="primary" fontWeight="bold">
-                      ₦{user.balance?.toLocaleString()}
+                    <Typography variant="body1" fontWeight="bold" color="primary">
+                      ₦{user.balance.toLocaleString()}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -315,82 +192,20 @@ export default function Users() {
                     {format(new Date(user.createdAt), 'dd MMM yyyy')}
                   </TableCell>
                   <TableCell>
-                    <IconButton onClick={(e) => handleMenuClick(e, user.id)} size="small">
-                      <MoreVertIcon />
-                    </IconButton>
+                    <Button
+                      size="small"
+                      color={user.status === 'active' ? 'error' : 'success'}
+                      onClick={() => toggleUserStatus(user.id, user.status)}
+                    >
+                      {user.status === 'active' ? 'Suspend' : 'Activate'}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
-      )}
-
-      {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={() => handleDeposit(users.find(u => u.id === selectedUserId))}>
-          <BalanceIcon fontSize="small" sx={{ mr: 1 }} />
-          Make Deposit
-        </MenuItem>
-        <MenuItem onClick={() => toggleUserStatus(selectedUserId, 
-          users.find(u => u.id === selectedUserId)?.status)}>
-          <EditIcon fontSize="small" sx={{ mr: 1 }} />
-          Toggle Status
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose}>
-          <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
-          Delete User
-        </MenuItem>
-      </Menu>
-
-      {/* Deposit Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {selectedUser ? `Deposit to ${selectedUser.name}` : 'Add New User'}
-        </DialogTitle>
-        <DialogContent>
-          {selectedUser ? (
-            <>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Current Balance: ₦{selectedUser.balance?.toLocaleString()}
-              </Alert>
-              <TextField
-                autoFocus
-                margin="dense"
-                label="Deposit Amount (₦)"
-                type="number"
-                fullWidth
-                variant="outlined"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₦</InputAdornment>
-                  ),
-                }}
-              />
-            </>
-          ) : (
-            <Box>
-              <Typography>Add new user form here...</Typography>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button 
-            onClick={processDeposit} 
-            variant="contained"
-            disabled={!depositAmount}
-          >
-            Confirm Deposit
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </Paper>
     </Box>
   );
 }

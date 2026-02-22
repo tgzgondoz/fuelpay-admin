@@ -1,91 +1,79 @@
+// src/pages/Profile.jsx
 import React from 'react';
 import {
-  Container,
+  Box,
   Paper,
   Typography,
   Avatar,
-  Box,
-  Grid,
   TextField,
   Button,
+  Grid
 } from '@mui/material';
-import { Person } from '@mui/icons-material';
+import { useAuth } from '../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
-const Profile = () => {
-  const user = {
-    email: 'admin@fuelpay.com',
-    name: 'Admin User',
-    role: 'Administrator',
-    joinDate: '2024-01-01',
+export default function Profile() {
+  const { user } = useAuth();
+
+  const handleUpdate = () => {
+    toast.success('Profile updated (demo)');
   };
 
   return (
-    <Container maxWidth="md">
-      <Paper sx={{ p: 4, mt: 2 }}>
-        <Typography variant="h4" gutterBottom>
-          Profile Settings
-        </Typography>
-        
-        <Box display="flex" alignItems="center" mb={4}>
-          <Avatar sx={{ width: 100, height: 100, mr: 3 }}>
-            <Person sx={{ fontSize: 60 }} />
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        Profile
+      </Typography>
+
+      <Paper sx={{ p: 3, maxWidth: 600 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+          <Avatar sx={{ width: 80, height: 80, bgcolor: '#1a73e8', fontSize: 32 }}>
+            {user?.email?.charAt(0).toUpperCase()}
           </Avatar>
-          <Box>
-            <Typography variant="h5">{user.name}</Typography>
-            <Typography color="textSecondary">{user.email}</Typography>
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              {user.role} • Joined {user.joinDate}
-            </Typography>
+          <Box sx={{ ml: 3 }}>
+            <Typography variant="h5">{user?.email}</Typography>
+            <Typography color="textSecondary">Administrator</Typography>
           </Box>
         </Box>
 
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              defaultValue={user.name}
-              margin="normal"
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <TextField
               fullWidth
               label="Email"
-              defaultValue={user.email}
-              margin="normal"
-              type="email"
+              value={user?.email || ''}
+              disabled
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Display Name"
+              defaultValue={user?.displayName || ''}
+            />
+          </Grid>
+          <Grid item xs={12}>
             <TextField
               fullWidth
               label="Current Password"
               type="password"
-              margin="normal"
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <TextField
               fullWidth
               label="New Password"
               type="password"
-              margin="normal"
             />
           </Grid>
         </Grid>
 
-        <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
-          <Button variant="contained">
+        <Box sx={{ mt: 3 }}>
+          <Button variant="contained" onClick={handleUpdate}>
             Update Profile
-          </Button>
-          <Button variant="outlined">
-            Cancel
           </Button>
         </Box>
       </Paper>
-    </Container>
+    </Box>
   );
-};
-
-export default Profile;
+}
