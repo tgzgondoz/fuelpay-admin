@@ -1,6 +1,6 @@
 // src/components/Layout.jsx
 import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'; // Added useLocation
 import {
   Box,
   Drawer,
@@ -15,7 +15,9 @@ import {
   ListItemText,
   Avatar,
   Menu,
-  MenuItem
+  MenuItem,
+  Divider,
+  Tooltip
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -47,6 +49,7 @@ export default function Layout() {
   const [anchorEl, setAnchorEl] = useState(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // Add this for active route detection
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -61,26 +64,84 @@ export default function Layout() {
   };
 
   const handleLogout = async () => {
-    const result = await logout();
-    if (result.success) {
-      toast.success('Logged out successfully');
-      navigate('/login');
+    try {
+      handleClose();
+      const result = await logout();
+      if (result.success) {
+        toast.success('Logged out successfully');
+        navigate('/login', { replace: true });
+      } else {
+        toast.error('Logout failed');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('An error occurred during logout');
     }
-    handleClose();
+  };
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    if (mobileOpen) {
+      setMobileOpen(false); // Close mobile drawer after navigation
+    }
+  };
+
+  const getUserInitials = () => {
+    if (user?.displayName) {
+      return user.displayName
+        .split(' ')
+        .map(word => word[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return 'A';
+  };
+
+  const isActiveRoute = (path) => {
+    return location.pathname === path;
   };
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap>
-          FuelPay Admin
+      <Toolbar sx={{ 
+        bgcolor: 'primary.main', 
+        color: 'white',
+        display: 'flex',
+        justifyContent: 'center'
+      }}>
+        <Typography variant="h6" noWrap fontWeight="bold">
+          FUELPAY ADMIN
         </Typography>
       </Toolbar>
+      <Divider />
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton onClick={() => navigate(item.path)}>
-              <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemButton 
+              onClick={() => handleNavigation(item.path)}
+              selected={isActiveRoute(item.path)}
+              sx={{
+                '&.Mui-selected': {
+                  bgcolor: 'primary.light',
+                  color: 'primary.main',
+                  '&:hover': {
+                    bgcolor: 'primary.light',
+                  },
+                  '& .MuiListItemIcon-root': {
+                    color: 'primary.main',
+                  },
+                },
+              }}
+            >
+              <ListItemIcon sx={{ 
+                color: isActiveRoute(item.path) ? 'primary.main' : 'inherit' 
+              }}>
+                {item.icon}
+              </ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
           </ListItem>
@@ -91,7 +152,15 @@ export default function Layout() {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+      <AppBar 
+        position="fixed" 
+        sx={{ 
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          bgcolor: 'white',
+          color: 'text.primary',
+          boxShadow: 1
+        }}
+      >
         <Toolbar>
           <IconButton
             color="inherit"
@@ -101,27 +170,74 @@ export default function Layout() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
-            FuelPay Admin
+          
+          <Typography 
+            variant="h6" 
+            noWrap 
+            sx={{ 
+              flexGrow: 1,
+              display: { xs: 'none', sm: 'block' }
+            }}
+          >
+            Welcome back, {user?.email || 'Admin'}
           </Typography>
           
-          <IconButton onClick={handleMenu} color="inherit">
-            <Avatar sx={{ width: 32, height: 32, bgcolor: '#fff', color: '#1a73e8' }}>
-              {user?.email?.charAt(0).toUpperCase() || 'A'}
-            </Avatar>
-          </IconButton>
+          <Tooltip title="Account settings">
+            <IconButton 
+              onClick={handleMenu} 
+              color="inherit"
+              sx={{ 
+                border: '2px solid',
+                borderColor: 'primary.main',
+                p: 0.5
+              }}
+            >
+              <Avatar 
+                sx={{ 
+                  width: 32, 
+                  height: 32, 
+                  bgcolor: 'primary.main', 
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                {getUserInitials()}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
+          
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
             onClose={handleClose}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            PaperProps={{
+              sx: {
+                mt: 1.5,
+                minWidth: 180,
+                borderRadius: 2,
+                boxShadow: 3
+              }
+            }}
           >
+            <Box sx={{ px: 2, py: 1 }}>
+              <Typography variant="subtitle2" fontWeight="bold">
+                {user?.displayName || 'Admin User'}
+              </Typography>
+              <Typography variant="caption" color="textSecondary">
+                {user?.email}
+              </Typography>
+            </Box>
+            <Divider />
             <MenuItem onClick={() => { navigate('/profile'); handleClose(); }}>
               <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
-              Profile
+              <ListItemText>Profile</ListItemText>
             </MenuItem>
             <MenuItem onClick={handleLogout}>
               <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-              Logout
+              <ListItemText>Logout</ListItemText>
             </MenuItem>
           </Menu>
         </Toolbar>
@@ -131,6 +247,7 @@ export default function Layout() {
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
       >
+        {/* Mobile drawer */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -138,16 +255,26 @@ export default function Layout() {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              width: drawerWidth,
+              boxSizing: 'border-box',
+            },
           }}
         >
           {drawer}
         </Drawer>
+        
+        {/* Desktop drawer */}
         <Drawer
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              width: drawerWidth,
+              boxSizing: 'border-box',
+              borderRight: '1px solid',
+              borderColor: 'divider'
+            },
           }}
           open
         >
@@ -161,6 +288,8 @@ export default function Layout() {
           flexGrow: 1,
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          minHeight: '100vh',
+          bgcolor: '#f5f5f5',
           mt: '64px'
         }}
       >

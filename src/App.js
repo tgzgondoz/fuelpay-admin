@@ -1,9 +1,8 @@
 // src/App.js
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Layout
 import Layout from './components/Layout';
@@ -18,67 +17,44 @@ import Stations from './pages/Stations';
 import QRManager from './pages/QRManager';
 import Profile from './pages/Profile';
 
-// Auth Context
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1a73e8',
-    },
-    secondary: {
-      main: '#34a853',
-    },
-  },
-});
-
-// Protected Route Component
+// Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  
+  const { user } = useAuth();
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
-  
   return children;
 };
 
-function AppContent() {
-  return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/" element={
-        <ProtectedRoute>
-          <Layout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<Dashboard />} />
-        <Route path="users" element={<Users />} />
-        <Route path="deposits" element={<Deposits />} />
-        <Route path="transactions" element={<Transactions />} />
-        <Route path="stations" element={<Stations />} />
-        <Route path="qr-manager" element={<QRManager />} />
-        <Route path="profile" element={<Profile />} />
-      </Route>
-    </Routes>
-  );
-}
-
 function App() {
+  console.log('App rendering'); // Add this to check if App renders
+
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Toaster position="top-right" />
+    <AuthProvider>
       <BrowserRouter>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
+        <Toaster position="top-right" />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Dashboard />} />
+            <Route path="users" element={<Users />} />
+            <Route path="deposits" element={<Deposits />} />
+            <Route path="transactions" element={<Transactions />} />
+            <Route path="stations" element={<Stations />} />
+            <Route path="qr-manager" element={<QRManager />} />
+            <Route path="profile" element={<Profile />} />
+          </Route>
+          
+          {/* Catch all other routes and redirect to dashboard */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </BrowserRouter>
-    </ThemeProvider>
+    </AuthProvider>
   );
 }
 
