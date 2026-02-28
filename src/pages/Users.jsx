@@ -15,24 +15,62 @@ import {
   Avatar,
   TextField,
   InputAdornment,
-  LinearProgress
+  LinearProgress,
+  Alert
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Block as BlockIcon,
   CheckCircle as ActiveIcon
 } from '@mui/icons-material';
+import { ref, onValue, update } from 'firebase/database';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { rtdb } from '../services/firebase'; // Import Realtime Database
 
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadUsers();
+    // Set up real-time listener for users
+    const usersRef = ref(rtdb, 'users');
+    
+    const unsubscribe = onValue(usersRef, (snapshot) => {
+      try {
+        const data = snapshot.val();
+        if (data) {
+          // Convert the object to an array and add the uid as id
+          const usersArray = Object.entries(data).map(([uid, userData]) => ({
+            id: uid,
+            uid: uid,
+            ...userData
+          }));
+          
+          setUsers(usersArray);
+          setFilteredUsers(usersArray);
+          setError(null);
+        } else {
+          setUsers([]);
+          setFilteredUsers([]);
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error('Error processing users data:', err);
+        setError('Failed to load users data');
+        setLoading(false);
+      }
+    }, (error) => {
+      console.error('Error fetching users:', error);
+      setError('Failed to connect to database');
+      setLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -40,7 +78,8 @@ export default function Users() {
       const filtered = users.filter(user =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.phone?.includes(searchTerm)
+        user.phone?.includes(searchTerm) ||
+        user.accountNumber?.includes(searchTerm)
       );
       setFilteredUsers(filtered);
     } else {
@@ -48,62 +87,23 @@ export default function Users() {
     }
   }, [searchTerm, users]);
 
-  const loadUsers = async () => {
+  const toggleUserStatus = async (userId, currentStatus) => {
     try {
-      setLoading(true);
+      const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
       
-      // Mock data
-      setUsers([
-        {
-          id: '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-          phone: '+2348012345678',
-          accountNumber: 'ZQ100001',
-          balance: 15000,
-          status: 'active',
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          name: 'Jane Smith',
-          email: 'jane@example.com',
-          phone: '+2348023456789',
-          accountNumber: 'ZQ100002',
-          balance: 25000,
-          status: 'active',
-          createdAt: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: '3',
-          name: 'Mike Johnson',
-          email: 'mike@example.com',
-          phone: '+2348034567890',
-          accountNumber: 'ZQ100003',
-          balance: 8000,
-          status: 'suspended',
-          createdAt: new Date(Date.now() - 172800000).toISOString()
-        }
-      ]);
+      // Update in Firebase Realtime Database
+      const userRef = ref(rtdb, `users/${userId}`);
+      await update(userRef, { status: newStatus });
       
+      toast.success(`User ${newStatus} successfully`);
     } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error updating user status:', error);
+      toast.error('Failed to update user status');
     }
   };
 
-  const toggleUserStatus = (userId, currentStatus) => {
-    const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
-    setUsers(prev =>
-      prev.map(user =>
-        user.id === userId ? { ...user, status: newStatus } : user
-      )
-    );
-    toast.success(`User ${newStatus} successfully`);
-  };
-
   const getInitials = (name) => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map(word => word[0])
@@ -112,7 +112,41 @@ export default function Users() {
       .slice(0, 2);
   };
 
-  if (loading) return <LinearProgress />;
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0
+    }).format(amount || 0);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'dd MMM yyyy');
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ width: '100%' }}>
+        <LinearProgress />
+        <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
+          Loading users...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -123,7 +157,7 @@ export default function Users() {
       <Paper sx={{ p: 2, mb: 2 }}>
         <TextField
           fullWidth
-          placeholder="Search users by name, email, or phone..."
+          placeholder="Search users by name, email, phone, or account number..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
@@ -137,72 +171,98 @@ export default function Users() {
       </Paper>
 
       <Paper sx={{ p: 2 }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell>Account</TableCell>
-                <TableCell>Balance</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Joined</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar>{getInitials(user.name)}</Avatar>
-                      <Box>
-                        <Typography variant="body2" fontWeight="bold">
-                          {user.name}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {user.email}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {user.accountNumber}
-                    </Typography>
-                    <Typography variant="caption" color="textSecondary">
-                      {user.phone}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body1" fontWeight="bold" color="primary">
-                      ₦{user.balance.toLocaleString()}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={user.status}
-                      color={user.status === 'active' ? 'success' : 'error'}
-                      size="small"
-                      icon={user.status === 'active' ? <ActiveIcon /> : <BlockIcon />}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(user.createdAt), 'dd MMM yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      size="small"
-                      color={user.status === 'active' ? 'error' : 'success'}
-                      onClick={() => toggleUserStatus(user.id, user.status)}
-                    >
-                      {user.status === 'active' ? 'Suspend' : 'Activate'}
-                    </Button>
-                  </TableCell>
+        {filteredUsers.length === 0 ? (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="body1" color="textSecondary">
+              {searchTerm ? 'No users found matching your search' : 'No users found'}
+            </Typography>
+          </Box>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>User</TableCell>
+                  <TableCell>Account</TableCell>
+                  <TableCell>Balance</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Joined</TableCell>
+                  <TableCell>Last Login</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar>{getInitials(user.name)}</Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight="bold">
+                            {user.name || 'No name'}
+                          </Typography>
+                          <Typography variant="caption" color="textSecondary">
+                            {user.email || 'No email'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {user.accountNumber || 'N/A'}
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        {user.phone || 'No phone'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body1" fontWeight="bold" color="primary">
+                        {formatCurrency(user.balance)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={user.status || 'unknown'}
+                        color={
+                          user.status === 'active' ? 'success' : 
+                          user.status === 'suspended' ? 'error' : 
+                          'default'
+                        }
+                        size="small"
+                        icon={user.status === 'active' ? <ActiveIcon /> : <BlockIcon />}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {formatDate(user.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      {formatDate(user.lastLogin)}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color={user.status === 'active' ? 'error' : 'success'}
+                        onClick={() => toggleUserStatus(user.id, user.status)}
+                        disabled={!user.status}
+                      >
+                        {user.status === 'active' ? 'Suspend' : 
+                         user.status === 'suspended' ? 'Activate' : 
+                         'Set Status'}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+        
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <Typography variant="caption" color="textSecondary">
+            Total Users: {filteredUsers.length}
+          </Typography>
+        </Box>
       </Paper>
     </Box>
   );

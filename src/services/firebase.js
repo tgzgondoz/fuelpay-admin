@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getDatabase } from "firebase/database"; // Add this import
 
 const firebaseConfig = {
   apiKey: "AIzaSyDz7OAnQ0FP2mEjk0zvo_aL9rfK0GLF4cM",
@@ -27,12 +28,14 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const rtdb = getDatabase(app); // Add Realtime Database
 
 // Export services and auth functions
 export { 
   auth, 
   db, 
   storage,
+  rtdb, // Export Realtime Database
   signInWithEmailAndPassword,
   signOut,
   createUserWithEmailAndPassword,
