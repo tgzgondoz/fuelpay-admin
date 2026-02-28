@@ -16,13 +16,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   IconButton,
   LinearProgress
 } from '@mui/material';
 import {
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';

@@ -15,12 +15,10 @@ import {
   Avatar,
   TextField,
   InputAdornment,
-  IconButton,
   LinearProgress
 } from '@mui/material';
 import {
   Search as SearchIcon,
-  AccountBalance as BalanceIcon,
   Block as BlockIcon,
   CheckCircle as ActiveIcon
 } from '@mui/icons-material';
